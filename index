@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>iOS System</title>
+  <style>
+    /* Global Reset & Design Tokens */
+    :root {
+      --ios-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+      --ios-bg: #000000;
+      --ios-card-bg: rgba(255, 255, 255, 0.25);
+      --ios-card-border: rgba(255, 255, 255, 0.18);
+      --ios-text-white: #ffffff;
+      --ios-text-dark: #000000;
+      --ios-blue: #007aff;
+      --ios-green: #34c759;
+      --ios-red: #ff3b30;
+      --ios-line-yellow: #fee500;
+      --spotify-green: #1db954;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: var(--ios-font);
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Device Container */
+    #phone-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 430px;
+      max-height: 932px;
+      background-color: var(--ios-bg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media (min-width: 440px) and (min-height: 800px) {
+      #phone-frame {
+        border-radius: 48px;
+        height: 92vh;
+        border: 8px solid #222222;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+      }
+    }
+
+    /* Dynamic Island / Notch */
+    .dynamic-island {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 35px;
+      background-color: #000000;
+      border-radius: 20px;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 48px;
+      padding: 0 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-bottom: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ios-text-white);
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    .status-bar.dark-text {
+      color: var(--ios-text-dark);
+    }
+
+    /* Base Layer & Wallpapers */
+    .page-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      flex-direction: column;
+      z-index: 10;
+      overflow: hidden;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .page-layer.active {
+      display: flex;
+    }
+
+    /* iOS Global Home Bar */
+    .home-bar {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 134px;
+      height: 5px;
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 3px;
+      z-index: 900;
+      cursor: pointer;
+    }
+
+    .home-bar.dark {
+      background-color: rgba(0, 0, 0, 0.6);
+    }
+
+    /* Glassmorphism Classes */
+    .glass {
+      background: var(--ios-card-bg);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--ios-card-border);
+    }
+
+    /* ------------------------------------
+       1. LOCK SCREEN
+    ------------------------------------ */
+    #page-lock {
+      justify-content: space-between;
+      align-items: center;
+      padding: 60px 20px 40px 20px;
+      color: var(--ios-text-white);
+      touch-action: pan-y;
+    }
+
+    .lock-time-box {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .lock-date {
+      font-size: 20px;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .lock-time {
+      font-size: 80px;
+      font-weight: 200;
+      line-height: 1;
+      margin-top: 4px;
+      letter-spacing: -2px;
+    }
+
+    .lock-swipe-hint {
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0.8;
+      margin-bottom: 20px;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    /* ------------------------------------
+       2. HOME SCREEN
+    ------------------------------------ */
+    #page-home {
+      padding: 60px 20px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Widgets Grid */
+    .widgets-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .widget-box {
+      border-radius: 22px;
+      padding: 16px;
+      height: 150px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: white;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    .widget-weather .place { font-size: 15px; font-weight: 600; }
+    .widget-weather .temp { font-size: 36px; font-weight: 300; margin: 2px 0; }
+    .widget-weather .desc { font-size: 12px; font-weight: 500; }
+    .widget-weather .hl { font-size: 11px; opacity: 0.8; }
+
+    .widget-events .widget-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ff3b30;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .event-item {
+      margin-top: 6px;
+      padding-left: 8px;
+      border-left: 3px solid var(--ios-blue);
+    }
+
+    .event-item .event-time { font-size: 11px; opacity: 0.8; }
+    .event-item .event-title { font-size: 13px; font-weight: 600; margin-top: 1px; }
+
+    /* App Icons Grid */
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px 14px;
+      margin-top: 10px;
+    }
+
+    .app-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .app-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 14px;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+      color: white;
+    }
+
+    .app-label {
+      font-size: 11px;
+      color: white;
+      font-weight: 500;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      text-align: center;
+    }
+
+    /* Dock Bar */
+    .dock-container {
+      margin-top: auto;
+      margin-bottom: 12px;
+      border-radius: 30px;
+      padding: 12px 18px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    /* ------------------------------------
+       3. PHONE APP (電話)
+    ------------------------------------ */
+    #app-phone {
+      background: #ffffff;
+      color: #000;
+    }
+
+    .ios-header {
+      padding: 50px 16px 10px 16px;
+      border-bottom: 0.5px solid #c6c6c8;
+      background: rgba(249, 249, 249, 0.9);
+      backdrop-filter: blur(10px);
+    }
+
+    .ios-header h1 {
+      font-size: 30px;
+      font-weight: 700;
+    }
+
+    .call-list {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 60px;
+    }
+
+    .call-group-header {
+      background: #f2f2f7;
+      padding: 6px 16px;
+      font-size: 13px;
+      color: #6c6c70;
+      font-weight: 600;
+    }
+
+    .call-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 0.5px solid #e5e5ea;
+    }
+
+    .call-row.missed .call-name { color: var(--ios-red); }
+
+    .call-name { font-size: 16px; font-weight: 600; }
+    .call-meta { font-size: 14px; color: #8e8e93; }
+
+    .phone-tab-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 50px;
+      background: rgba(249,249,249,0.9);
+      border-top: 0.5px solid #c6c6c8;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-size: 10px;
+      color: #8e8e93;
+    }
+
+    .phone-tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .phone-tab-item.active { color: var(--ios-blue); }
+
+    /* ------------------------------------
+       4. LINE APP
+    ------------------------------------ */
+    #app-line {
+      background: #ffffff;
+    }
+
+    .line-profile-bar {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      gap: 12px;
+      border-bottom: 0.5px solid #e5e5ea;
+      cursor: pointer;
+    }
+
+    .line-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 20px;
+      background: #ccc;
+      object-fit: cover;
+    }
+
+    .line-chat-room {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: #8499b8;
+    }
+
+    .line-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .line-msg-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .line-msg-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .line-bubble {
+      background: var(--ios-line-yellow);
+      color: #000;
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 14px;
+      max-width: 70%;
+      word-break: break-word;
+    }
+
+    .line-input-bar {
+      padding: 10px 16px 28px 16px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .line-input {
+      flex: 1;
+      height: 36px;
+      background: #f2f2f7;
+      border: none;
+      border-radius: 18px;
+      padding: 0 14px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    /* Line Profile Modal */
+    .full-modal {
+      position: absolute;
+      inset: 0;
+      background: #2c3e50;
+      color: white;
+      z-index: 800;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 80px 20px 60px 20px;
+    }
+
+    /* ------------------------------------
+       5. X (TWITTER) APP
+    ------------------------------------ */
+    #app-x {
+      background: #000000;
+      color: #ffffff;
+    }
+
+    .x-header {
+      padding: 50px 16px 12px 16px;
+      border-bottom: 0.5px solid #2f3336;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .tweet-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .tweet-item {
+      padding: 14px 16px;
+      border-bottom: 0.5px solid #2f3336;
+      display: flex;
+      gap: 12px;
+    }
+
+    .tweet-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #444;
+    }
+
+    .tweet-content { flex: 1; }
+    .tweet-user { display: flex; gap: 6px; font-size: 14px; font-weight: 700; }
+    .tweet-handle { color: #71767b; font-weight: 400; }
+    .tweet-text { margin-top: 6px; font-size: 14px; line-height: 1.4; color: #e7e9ea; }
+    .tweet-metrics { display: flex; gap: 24px; margin-top: 10px; color: #71767b; font-size: 12px; }
+
+    /* ------------------------------------
+       6. INSTAGRAM VIDEO CALL APP
+    ------------------------------------ */
+    #app-instagram-call {
+      background: #000;
+      color: white;
+      justify-content: space-between;
+      align-items: center;
+      padding: 80px 20px 60px 20px;
+    }
+
+    .ig-avatar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .ig-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #f09433, #bc1888);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 36px;
+      font-weight: bold;
+    }
+
+    .ig-call-actions {
+      display: flex;
+      gap: 60px;
+    }
+
+    .ig-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .ig-btn.accept { background: var(--ios-green); color: white; }
+    .ig-btn.decline { background: var(--ios-red); color: white; }
+
+    /* Active Video Call Interface */
+    #ig-video-room {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      z-index: 850;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .ig-bg-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .ig-pip-video {
+      position: absolute;
+      top: 60px;
+      right: 16px;
+      width: 100px;
+      height: 150px;
+      border-radius: 12px;
+      object-fit: cover;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      z-index: 10;
+    }
+
+    .ig-room-header {
+      position: relative;
+      z-index: 10;
+      padding: 50px 20px 0 20px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+
+    .ig-chat-overlay {
+      position: absolute;
+      bottom: 90px;
+      left: 16px;
+      width: 70%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .ig-chat-item {
+      color: white;
+      font-size: 13px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+      transition: opacity 0.5s;
+    }
+
+    .ig-bottom-bar {
+      position: relative;
+      z-index: 10;
+      padding: 10px 16px 28px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .ig-controls-row {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .ig-control-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      border: none;
+      color: white;
+      font-size: 18px;
+    }
+
+    /* ------------------------------------
+       7. SPOTIFY APP
+    ------------------------------------ */
+    #app-spotify {
+      background: #121212;
+      color: white;
+    }
+
+    .spotify-header {
+      padding: 60px 20px 20px 20px;
+      background: linear-gradient(180deg, #333333 0%, #121212 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .spotify-cover {
+      width: 140px;
+      height: 140px;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      object-fit: cover;
+      background: #282828;
+    }
+
+    .spotify-song-row {
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .spotify-song-title { font-size: 15px; font-weight: 600; }
+    .spotify-song-title.playing { color: var(--spotify-green); }
+    .spotify-song-artist { font-size: 12px; color: #b3b3b3; margin-top: 2px; }
+
+    /* Spotify Mini Player */
+    .spotify-mini-player {
+      position: absolute;
+      bottom: 12px;
+      left: 8px;
+      right: 8px;
+      height: 54px;
+      background: #282828;
+      border-radius: 8px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+    }
+
+    .spotify-full-player {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, #404040 0%, #121212 100%);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 60px 24px 50px 24px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="phone-frame">
+  <div class="dynamic-island"></div>
+
+  <!-- Status Bar -->
+  <div class="status-bar" id="status-bar">
+    <span id="sb-time">09:41</span>
+    <span>5G 99%</span>
+  </div>
+
+  <!-- 1. LOCK SCREEN -->
+  <div class="page-layer active" id="page-lock">
+    <div class="lock-time-box">
+      <div class="lock-date" id="lock-date">10月25日 日曜日</div>
+      <div class="lock-time" id="lock-time">09:41</div>
+    </div>
+    <div class="lock-swipe-hint">スワイプして解除</div>
+    <div class="home-bar" onclick="unlockPhone()"></div>
+  </div>
+
+  <!-- 2. HOME SCREEN -->
+  <div class="page-layer" id="page-home">
+    <div class="widgets-container">
+      <div class="widget-box widget-weather glass">
+        <div class="place" id="w-place">東京</div>
+        <div class="temp" id="w-temp">22°</div>
+        <div>
+          <div class="desc" id="w-desc">晴れ</div>
+          <div class="hl" id="w-hl">最高:24° 最低:16°</div>
+        </div>
+      </div>
+      <div class="widget-box widget-events glass">
+        <div class="widget-title">カレンダー</div>
+        <div id="widget-events-list"></div>
+      </div>
+    </div>
+
+    <!-- App Grid -->
+    <div class="apps-grid">
+      <div class="app-item" onclick="openApp('app-phone')">
+        <div class="app-icon" style="background: #34c759;">📞</div>
+        <span class="app-label">電話</span>
+      </div>
+      <div class="app-item" onclick="openApp('app-line')">
+        <div class="app-icon" style="background: #06c755;">💬</div>
+        <span class="app-label">LINE</span>
+      </div>
+      <div class="app-item" onclick="openApp('app-x')">
+        <div class="app-icon" style="background: #000000; border: 1px solid #333;">𝕏</div>
+        <span class="app-label">X</span>
+      </div>
+      <div class="app-item" onclick="triggerInstagramCall()">
+        <div class="app-icon" style="background: linear-gradient(45deg, #f09433, #bc1888);">📷</div>
+        <span class="app-label">Instagram</span>
+      </div>
+      <div class="app-item" onclick="openApp('app-spotify')">
+        <div class="app-icon" style="background: #1db954;">🎵</div>
+        <span class="app-label">Spotify</span>
+      </div>
+      <!-- Decorative Icons -->
+      <div class="app-item"><div class="app-icon" style="background: #ff0000;">▶️</div><span class="app-label">YouTube</span></div>
+      <div class="app-item"><div class="app-icon" style="background: #ff2d55;">🍎</div><span class="app-label">Music</span></div>
+      <div class="app-item"><div class="app-icon" style="background: #5856d6;">🗺️</div><span class="app-label">マップ</span></div>
+    </div>
+
+    <!-- Dock -->
+    <div class="dock-container glass">
+      <div class="app-item" onclick="openApp('app-phone')"><div class="app-icon" style="background: #34c759;">📞</div></div>
+      <div class="app-item" onclick="openApp('app-line')"><div class="app-icon" style="background: #06c755;">💬</div></div>
+      <div class="app-item" onclick="openApp('app-x')"><div class="app-icon" style="background: #000;">𝕏</div></div>
+      <div class="app-item" onclick="triggerInstagramCall()"><div class="app-icon" style="background: linear-gradient(45deg, #f09433, #bc1888);">📷</div></div>
+    </div>
+
+    <div class="home-bar" onclick="goHome()"></div>
+  </div>
+
+  <!-- 3. PHONE APP -->
+  <div class="page-layer" id="app-phone">
+    <div class="ios-header">
+      <h1>履歴</h1>
+    </div>
+    <div class="call-list" id="call-list-container"></div>
+    <div class="phone-tab-bar">
+      <div class="phone-tab-item"><span>⭐</span>お気に入り</div>
+      <div class="phone-tab-item active"><span>🕒</span>履歴</div>
+      <div class="phone-tab-item"><span>👤</span>連絡先</div>
+      <div class="phone-tab-item"><span>🔢</span>キーパッド</div>
+    </div>
+    <div class="home-bar dark" onclick="goHome()"></div>
+  </div>
+
+  <!-- 4. LINE APP -->
+  <div class="page-layer" id="app-line">
+    <div class="ios-header" style="display: flex; justify-content: space-between; align-items: center;">
+      <h1>トーク</h1>
+    </div>
+    <div class="line-profile-bar" onclick="openLineProfile()">
+      <img class="line-avatar" id="line-my-avatar" src="" alt="avatar">
+      <div>
+        <div style="font-weight: 700; font-size: 16px;" id="line-my-name">ユーザー</div>
+        <div style="font-size: 12px; color: #8e8e93;">ステータスメッセージを設定...</div>
+      </div>
+    </div>
+    <!-- Chat View -->
+    <div class="line-chat-room">
+      <div class="line-messages" id="line-msg-container"></div>
+      <div class="line-input-bar">
+        <input type="text" class="line-input" id="line-input-field" placeholder="メッセージを入力">
+        <button onclick="sendLineMessage()" style="border:none; background:none; color:var(--ios-blue); font-weight:600;">送信</button>
+      </div>
+    </div>
+    <!-- Full Profile Modal -->
+    <div class="full-modal" id="line-profile-modal">
+      <div style="text-align: center;">
+        <img class="line-avatar" id="modal-avatar" style="width: 100px; height: 100px; border-radius: 40px;" src="" alt="avatar">
+        <h2 style="margin-top: 16px;" id="modal-name">ユーザー</h2>
+      </div>
+      <button onclick="closeLineProfile()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px 24px; border-radius: 20px;">閉じる</button>
+    </div>
+    <div class="home-bar dark" onclick="goHome()"></div>
+  </div>
+
+  <!-- 5. X APP -->
+  <div class="page-layer" id="app-x">
+    <div class="x-header">
+      <span>🔒</span>
+      <span id="x-profile-handle">@handle</span>
+    </div>
+    <div class="tweet-list" id="tweet-list-container"></div>
+    <div class="home-bar" onclick="goHome()"></div>
+  </div>
+
+  <!-- 6. INSTAGRAM VIDEO CALL -->
+  <div class="page-layer" id="app-instagram-call">
+    <div class="ig-avatar-wrap">
+      <div class="ig-avatar" id="ig-caller-avatar">A</div>
+      <h2 style="margin-top: 16px;" id="ig-caller-name">Caller</h2>
+      <p style="font-size: 14px; opacity: 0.8; margin-top: 4px;">Instagram ビデオ通話...</p>
+    </div>
+    <div class="ig-call-actions">
+      <button class="ig-btn decline" onclick="goHome()">✕</button>
+      <button class="ig-btn accept" onclick="acceptIgCall()">📞</button>
+    </div>
+
+    <!-- Active Video Room -->
+    <div id="ig-video-room">
+      <video class="ig-bg-video" id="ig-main-video" loop playsinline muted></video>
+      <video class="ig-pip-video" id="ig-pip-video" loop playsinline muted></video>
+      <div class="ig-room-header">
+        <h3 id="ig-room-name">Caller</h3>
+        <p style="font-size: 12px; opacity: 0.8;" id="ig-timer">00:00</p>
+      </div>
+      <div class="ig-chat-overlay" id="ig-chat-overlay"></div>
+      <div class="ig-bottom-bar">
+        <div class="ig-controls-row">
+          <button class="ig-control-btn">🔄</button>
+          <button class="ig-control-btn">🎙️</button>
+          <button class="ig-control-btn">📷</button>
+          <button class="ig-control-btn" style="background: var(--ios-red);" onclick="endIgCall()">✕</button>
+        </div>
+        <input type="text" class="line-input" id="ig-msg-input" placeholder="メッセージを送信..." style="background: rgba(255,255,255,0.2); color: white;" onkeydown="if(event.key==='Enter') sendIgMessage()">
+      </div>
+    </div>
+    <div class="home-bar" onclick="goHome()"></div>
+  </div>
+
+  <!-- 7. SPOTIFY APP -->
+  <div class="page-layer" id="app-spotify">
+    <div class="spotify-header">
+      <img class="spotify-cover" id="sp-cover" src="" alt="cover">
+      <h2 style="margin-top: 12px;" id="sp-playlist-name">プレイリスト</h2>
+      <p style="font-size: 12px; color: #b3b3b3; margin-top: 4px;">作成者 <span id="sp-creator">User</span> • 1曲</p>
+    </div>
+    <div id="spotify-songs-list"></div>
+
+    <!-- Mini Player -->
+    <div class="spotify-mini-player" onclick="openFullSpotify()">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="font-size: 13px;">
+          <div style="font-weight: 600;" id="sp-mini-title">Song Title</div>
+          <div style="color: #b3b3b3; font-size: 11px;" id="sp-mini-artist">Artist</div>
+        </div>
+      </div>
+      <button id="sp-play-btn" onclick="event.stopPropagation(); togglePlay();" style="background:none; border:none; color:white; font-size:20px;">▶️</button>
+    </div>
+
+    <!-- Full Screen Player -->
+    <div class="spotify-full-player" id="spotify-full-player">
+      <button onclick="closeFullSpotify()" style="background:none; border:none; color:white; font-size:20px; align-self: flex-start;">✕</button>
+      <img id="sp-full-cover" style="width: 100%; aspect-ratio: 1; border-radius: 12px; object-fit: cover;" src="" alt="cover">
+      <div>
+        <h2 id="sp-full-title">Song Title</h2>
+        <p style="color: #b3b3b3; margin-top: 4px;" id="sp-full-artist">Artist</p>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <button style="background:none; border:none; color:white; font-size:24px;">⏮️</button>
+        <button onclick="togglePlay()" style="background:white; border:none; width:60px; height:60px; border-radius:50%; font-size:24px;">▶️</button>
+        <button style="background:none; border:none; color:white; font-size:24px;">⏭️</button>
+      </div>
+    </div>
+    <div class="home-bar" onclick="goHome()"></div>
+  </div>
+
+</div>
+
+<script>
+  /* ===================================================================
+     CONFIG OBJECT (All data controlled here)
+  =================================================================== */
+  const CONFIG = {
+    wallpaper: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=800&q=80",
+    userName: "紫蘿",
+    contactName: "a",
+    twitterHandle: "cp_official",
+    weather: { place: "東京", temp: "22°", desc: "晴れ", high: "24°", low: "16°" },
+    events: [
+      { time: "14:00", title: "デートの約束 ☕" },
+      { time: "19:00", title: "ディナー予約 🍽️" }
+    ],
+    calls: [
+      { group: "今日", items: [{ type: "着信", time: "12:30", count: "1" }] },
+      { group: "昨日", items: [{ type: "不在着信", time: "22:15", count: "2" }] }
+    ],
+    chat: [
+      { time: "昨日 22:15", text: "今天排練結束後去吃的那家拉麵真的超好吃" },
+      { time: "昨日 22:16", text: "下次還要再來吃！" },
+      { time: "午前 08:30", text: "早安呀～今天也要加油" },
+      { time: "午前 08:32", text: "好！你也是，出門小心" }
+    ],
+    tweets: [
+      "今天的天氣真的很適合出去走走，心情也跟著變好了。✨",
+      "錄音結束！新歌的感覺非常棒，期待趕快讓大家聽到。🎙️",
+      "剛剛喝了一杯很好喝的拿鐵，今天又是充滿元氣的一天。",
+      "晚安啦，大家做個好夢。🌙"
+    ],
+    instagram: {
+      callerName: "a_official",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+      video: "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lighting-1230-large.mp4",
+      messages: [
+        { from: "相手", text: "もしもし！聞こえる？", delay: 2 },
+        { from: "私", text: "うん！バッチリ聞こえるよ！", delay: 4 },
+        { from: "相手", text: "今日も一日お疲れ様✨", delay: 7 }
+      ]
+    },
+    spotify: {
+      playlistName: "Our Favorites 💕",
+      cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80",
+      songs: [
+        { title: "Sweet Romance", artist: "CP Band", audio: "" }
+      ]
+    }
+  };
+
+  /* ===================================================================
+     CORE SYSTEM ENGINE
+  =================================================================== */
+
+  // Apply Wallpapers & Core Dynamic Info
+  function initSystem() {
+    document.getElementById('page-lock').style.backgroundImage = `url(${CONFIG.wallpaper})`;
+    document.getElementById('page-home').style.backgroundImage = `url(${CONFIG.wallpaper})`;
+
+    // Weather
+    document.getElementById('w-place').textContent = CONFIG.weather.place;
+    document.getElementById('w-temp').textContent = CONFIG.weather.temp;
+    document.getElementById('w-desc').textContent = CONFIG.weather.desc;
+    document.getElementById('w-hl').textContent = `最高:${CONFIG.weather.high} 最低:${CONFIG.weather.low}`;
+
+    // Events
+    const eventsContainer = document.getElementById('widget-events-list');
+    eventsContainer.innerHTML = '';
+    CONFIG.events.forEach(e => {
+      eventsContainer.innerHTML += `
+        <div class="event-item">
+          <div class="event-time">${e.time}</div>
+          <div class="event-title">${e.title}</div>
+        </div>
+      `;
+    });
+
+    // Calls App
+    const callContainer = document.getElementById('call-list-container');
+    callContainer.innerHTML = '';
+    CONFIG.calls.forEach(g => {
+      let rows = '';
+      g.items.forEach(i => {
+        const isMissed = i.type.includes("不在") || i.type.includes("未接");
+        rows += `
+          <div class="call-row ${isMissed ? 'missed' : ''}">
+            <div>
+              <div class="call-name">${CONFIG.contactName} (${i.count})</div>
+              <div style="font-size: 12px; color: #8e8e93;">${i.type}</div>
+            </div>
+            <div class="call-meta">${i.time}</div>
+          </div>
+        `;
+      });
+      callContainer.innerHTML += `
+        <div class="call-group-header">${g.group}</div>
+        ${rows}
+      `;
+    });
+
+    // Line App
+    document.getElementById('line-my-name').textContent = CONFIG.userName;
+    document.getElementById('modal-name').textContent = CONFIG.userName;
+    if (CONFIG.instagram.avatar) {
+      document.getElementById('line-my-avatar').src = CONFIG.instagram.avatar;
+      document.getElementById('modal-avatar').src = CONFIG.instagram.avatar;
+    }
+
+    const msgContainer = document.getElementById('line-msg-container');
+    msgContainer.innerHTML = '';
+    CONFIG.chat.forEach(c => {
+      msgContainer.innerHTML += `
+        <div class="line-msg-row">
+          <div class="line-msg-meta">
+            <span>既読</span>
+            <span>${c.time}</span>
+          </div>
+          <div class="line-bubble">${c.text}</div>
+        </div>
+      `;
+    });
+
+    // X App
+    document.getElementById('x-profile-handle').textContent = `@${CONFIG.twitterHandle}`;
+    const tweetContainer = document.getElementById('tweet-list-container');
+    tweetContainer.innerHTML = '';
+    CONFIG.tweets.forEach(t => {
+      tweetContainer.innerHTML += `
+        <div class="tweet-item">
+          <div class="tweet-avatar"></div>
+          <div class="tweet-content">
+            <div class="tweet-user">
+              <span>${CONFIG.contactName}</span>
+              <span class="tweet-handle">@${CONFIG.twitterHandle}</span>
+            </div>
+            <div class="tweet-text">${t}</div>
+            <div class="tweet-metrics">
+              <span>💬 12</span>
+              <span>🔁 34</span>
+              <span>❤️ 520</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    // Spotify App
+    document.getElementById('sp-playlist-name').textContent = CONFIG.spotify.playlistName;
+    document.getElementById('sp-creator').textContent = CONFIG.userName;
+    if (CONFIG.spotify.cover) {
+      document.getElementById('sp-cover').src = CONFIG.spotify.cover;
+      document.getElementById('sp-full-cover').src = CONFIG.spotify.cover;
+    }
+    
+    const songList = document.getElementById('spotify-songs-list');
+    songList.innerHTML = '';
+    CONFIG.spotify.songs.forEach((s, idx) => {
+      songList.innerHTML += `
+        <div class="spotify-song-row" onclick="playSong('${s.title}', '${s.artist}')">
+          <div>
+            <div class="spotify-song-title ${idx === 0 ? 'playing' : ''}">${s.title}</div>
+            <div class="spotify-song-artist">${s.artist}</div>
+          </div>
+          <div>•••</div>
+        </div>
+      `;
+      if (idx === 0) {
+        document.getElementById('sp-mini-title').textContent = s.title;
+        document.getElementById('sp-mini-artist').textContent = s.artist;
+        document.getElementById('sp-full-title').textContent = s.title;
+        document.getElementById('sp-full-artist').textContent = s.artist;
+      }
+    });
+
+    // IG Setup
+    document.getElementById('ig-caller-name').textContent = CONFIG.instagram.callerName;
+    document.getElementById('ig-room-name').textContent = CONFIG.instagram.callerName;
+    if (CONFIG.instagram.avatar) {
+      document.getElementById('ig-caller-avatar').innerHTML = `<img src="${CONFIG.instagram.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    } else {
+      document.getElementById('ig-caller-avatar').textContent = CONFIG.instagram.callerName.charAt(0).toUpperCase();
+    }
+  }
+
+  /* Navigation */
+  function unlockPhone() {
+    switchLayer('page-home');
+  }
+
+  function goHome() {
+    switchLayer('page-home');
+  }
+
+  function openApp(appId) {
+    switchLayer(appId);
+  }
+
+  function switchLayer(layerId) {
+    document.querySelectorAll('.page-layer').forEach(l => l.classList.remove('active'));
+    document.getElementById(layerId).classList.add('active');
+  }
+
+  /* Line Actions */
+  function openLineProfile() { document.getElementById('line-profile-modal').style.display = 'flex'; }
+  function closeLineProfile() { document.getElementById('line-profile-modal').style.display = 'none'; }
+  function sendLineMessage() {
+    const input = document.getElementById('line-input-field');
+    if (!input.value.trim()) return;
+    const container = document.getElementById('line-msg-container');
+    container.innerHTML += `
+      <div class="line-msg-row">
+        <div class="line-msg-meta">
+          <span>未読</span>
+          <span>今</span>
+        </div>
+        <div class="line-bubble">${input.value}</div>
+      </div>
+    `;
+    input.value = '';
+    container.scrollTop = container.scrollHeight;
+  }
+
+  /* Instagram Call System */
+  let callTimerInterval = null;
+
+  function triggerInstagramCall() {
+    openApp('app-instagram-call');
+    document.getElementById('ig-video-room').style.display = 'none';
+  }
+
+  function acceptIgCall() {
+    document.getElementById('ig-video-room').style.display = 'flex';
+    const v1 = document.getElementById('ig-main-video');
+    const v2 = document.getElementById('ig-pip-video');
+    v1.src = CONFIG.instagram.video;
+    v2.src = CONFIG.instagram.video;
+    v1.play().catch(() => {});
+    v2.play().catch(() => {});
+
+    // Start Timer
+    let seconds = 0;
+    callTimerInterval = setInterval(() => {
+      seconds++;
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      document.getElementById('ig-timer').textContent = `${m}:${s}`;
+    }, 1000);
+
+    // Dynamic Messages
+    const overlay = document.getElementById('ig-chat-overlay');
+    overlay.innerHTML = '';
+    CONFIG.instagram.messages.forEach(m => {
+      setTimeout(() => {
+        const item = document.createElement('div');
+        item.className = 'ig-chat-item';
+        item.textContent = `${m.from}: ${m.text}`;
+        overlay.appendChild(item);
+        setTimeout(() => { item.style.opacity = '0'; }, 4000);
+      }, (m.delay || 2) * 1000);
+    });
+  }
+
+  function sendIgMessage() {
+    const input = document.getElementById('ig-msg-input');
+    if (!input.value.trim()) return;
+    const overlay = document.getElementById('ig-chat-overlay');
+    const item = document.createElement('div');
+    item.className = 'ig-chat-item';
+    item.textContent = `${CONFIG.userName}: ${input.value}`;
+    overlay.appendChild(item);
+    input.value = '';
+    setTimeout(() => { item.style.opacity = '0'; }, 4000);
+  }
+
+  function endIgCall() {
+    clearInterval(callTimerInterval);
+    goHome();
+  }
+
+  /* Spotify Actions */
+  let isPlaying = false;
+  function togglePlay() {
+    isPlaying = !isPlaying;
+    const btnText = isPlaying ? '⏸️' : '▶️';
+    document.getElementById('sp-play-btn').textContent = btnText;
+  }
+  function playSong(t, a) {
+    document.getElementById('sp-mini-title').textContent = t;
+    document.getElementById('sp-mini-artist').textContent = a;
+    isPlaying = true;
+    document.getElementById('sp-play-btn').textContent = '⏸️';
+  }
+  function openFullSpotify() { document.getElementById('spotify-full-player').style.display = 'flex'; }
+  function closeFullSpotify() { document.getElementById('spotify-full-player').style.display = 'none'; }
+
+  /* Clock & System Initialization */
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('sb-time').textContent = `${h}:${m}`;
+    document.getElementById('lock-time').textContent = `${h}:${m}`;
+  }
+  setInterval(updateClock, 1000);
+
+  window.onload = () => {
+    initSystem();
+    updateClock();
+  };
+</script>
+</body>
+</html>
